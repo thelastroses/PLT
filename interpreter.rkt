@@ -8,14 +8,50 @@
 (define
     process
     (lambda (parsed-exp) (
+        ;var-exp symbol
         cond
             ((null? parsed-exp) (displayln "ERROR: EMPTY PROGRAM."))
+            ;error handler from the parser
             ((void? parsed-exp) (void))
-            ((equal? 'var-exp (car parsed-exp)) (let ((value (resolve_env environment (cadr parsed-exp))))
-                (if (void? value)
-                    (displayln "ERROR: variable not found") value)))
+            ;if it is a variable, we will resoleve the value, and return the resolved value
+            ;programmer should be responsible for what he wrote, rather than hand it to the error handler
+            ;since the parser already validate the statement of the language, interpreter can omit this stage, but it is still risky if you do not use the parser before interpreter
+            ((equal? 'var-exp (car parsed-exp)) (resolve_env environment (cadr parsed-exp)))
+            ((equal? 'num-exp (car parsed-exp)) (car (cdr parsed-exp)))
+            ((eq? 'math-exp (car parsed-exp))   ;math-exp + (math-exp + ...) (num-exp 10)
+                (cond
+                    ;((or (void? (process (caddr parsed-exp)) ) (process (cadddr parsed-exp))))
+                    ((and (number? (process (caddr parsed-exp)) ) (number? (process (cadddr parsed-exp))))
+                        (do_math (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
+                    (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
+                )
+            )
+            ((eq? (car parsed-exp) 'bulk-exp)
+                (if (null? (cdr parsed-exp))
+                    (void)
+                    (process (cadr parsed-exp))))
+            ((eq? 'func-exp (car parsed-exp))
+                (let*
+                    ((my_env 
+                        (cons (map (lambda (pair) (list (cadr (car pair)) (process (cadr pair)))) (cadr parsed-exp)) 
+                        environment))
+                    (expression_lst (caddr parsed-exp))
+                    (ret_val (void)))
+                (begin
+                    (update_base_environment my_env)
+                    (set! ret_val (process expression_lst))
+                    (update_base_environment (cdr environment)) 
+                    ret_val)))
+
+            ;create a scope, and add all the parameters and its value into the scope
+            ;append the scope on top of the environment
+            ;wrap the begin with each statement of the bulk-exp
+            ;remove the scope when the execution completes
+            ;done
+            
             (else (displayln "ERROR: expression has not been supported yet."))
-    ))
+        )
+    )
 )
 
 (provide (all-defined-out))
