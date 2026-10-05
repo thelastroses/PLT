@@ -12,7 +12,8 @@
 (parse 'b)
 (parse 10)
 (parse '(32 + 32))
-(process (parse '(function (a b) ((a * b)) (4 5)))) ;func ((a 4) (b 5)) (bulk-exp ((math-exp '* (var-exp a) (var-exp b))))
+(process (parse '(function (a b) ((a * b)) (4 5))))
+(parse '(function (a b) ((a * b)) (4 5)))  ;func ((a 4) (b 5)) (bulk-exp ((math-exp '* (var-exp a) (var-exp b))))
 ;(var-exp a): interpreter will find out the a as a variable name from the environment, and tell us what it is
 (process (parse 'a))
 (process (parse 'b))
