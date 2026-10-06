@@ -57,7 +57,7 @@
     (cond
       ((null? lst) left_part)
       ((eq? (car (car lst)) key) (append left_part (list (list key value)) (cdr lst)))
-      (else (update_pair (append left_part (list (car lst))) (cdr lst) key value))
+      (else (update_pair (append left_part (list (list key value))) (cdr lst) key value))
       )
     )
   )
@@ -170,8 +170,11 @@
     )
 )
 
-(define update_base_environment
+(define
+  update_base_environment
   (lambda (new_env)
-    (set! environment new_env)))
+    (set! environment new_env)
+  )
+)
 
 (provide (all-defined-out))

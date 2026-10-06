@@ -26,31 +26,53 @@
                     (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
                 )
             )
-            ((eq? (car parsed-exp) 'bulk-exp)
-                (if (null? (cdr parsed-exp))
-                    (void)
-                    (process (cadr parsed-exp))))
             ((eq? 'func-exp (car parsed-exp))
-                (let*
-                    ((my_env 
-                        (cons (map (lambda (pair) (list (cadr (car pair)) (process (cadr pair)))) (cadr parsed-exp)) 
+                (let
+                    (
+                        ;cons the parameter list with the original environment
+                        ;(((var-exp a) (num-exp 1)) ((var-exp b) (var-exp a)))
+                        (my_env 
+                            (cons (map (lambda (pair) (list (cadr (car pair)) (process (cadr pair)))) (cadr parsed-exp))
                         environment))
-                    (expression_lst (caddr parsed-exp))
-                    (ret_val (void)))
-                (begin
-                    (update_base_environment my_env)
-                    (set! ret_val (process expression_lst))
-                    (update_base_environment (cdr environment)) 
-                    ret_val)))
-
+                        (expression_lst
+                            (caddr parsed-exp))
+                            ;(set! environment (cdr environment)))
+                        (ret_val (void))
+                    )
+                    (begin
+                        (update_base_environment my_env)
+                        ;(print (cadr (cadr (process expression_lst))))
+                        (set! ret_val (cadr (cadr (process expression_lst))))
+                        (update_base_environment (cdr environment))
+                        ret_val
+                    )
+                )
+            )
             ;create a scope, and add all the parameters and its value into the scope
             ;append the scope on top of the environment
             ;wrap the begin with each statement of the bulk-exp
             ;remove the scope when the execution completes
             ;done
-            
+            ;(bulk-exp
+            ;  (math-exp + 1 2)
+            ;  (var-exp a)
+            ;)
+            ;(bulk-exp)
+            ;we will iterate every expressions in the list, and until it leaves no expression to execute
+            ((eq? (car parsed-exp) 'bulk-exp)
+                (
+                    if (null? (cdr parsed-exp))
+                        (list 'terminator-exp (list 'bulk-ret (void))) ;(bulk-exp)
+                        (let
+                            (
+                                (ret_lst (map process (cdr parsed-exp)))
+                            )
+                            (list 'terminator-exp (list 'bulk-ret (list-ref ret_lst (- (length ret_lst) 1))))
+                        )
+                )
+            )
             (else (displayln "ERROR: expression has not been supported yet."))
-        )
+    )
     )
 )
 
