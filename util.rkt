@@ -142,6 +142,22 @@
     )
 )
 
+(define
+  is_valid_boolean_op
+    (lambda
+      (op)
+        (cond
+          ((eq? op '>) #t)
+          ((eq? op '>=) #t)
+          ((eq? op '<) #t)
+          ((eq? op '<=) #t)
+          ((eq? op '==) #t)
+          ((eq? op '&&) #t)
+          ((eq? op '||) #t)
+        )
+    )
+)
+
 ;create a function that can used to determine what math should use based on the symbol operator, and applies on 
 ; the operand parsed into the function
 (define
@@ -157,6 +173,21 @@
         ((eq? '% op) (modulo left_operand right_operand))
       )
     )
+)
+;if the program runs, don't touch it.
+(define
+  calculate_boolean ;brady gave the function name
+    (lambda
+      (op left_operand right_operand)
+      (cond
+        ((eq? '> op) (> left_operand right_operand))
+        ((eq? '>= op) (>= left_operand right_operand))
+        ((eq? '< op) (< left_operand right_operand))
+        ((eq? '<= op) (<= left_operand right_operand))
+        ((eq? '== op) (eq? left_operand right_operand))
+        ((eq? '&& op) (and left_operand right_operand))
+        ((eq? '|| op) (or left_operand right_operand))
+      ))
 )
 
 (define

@@ -26,6 +26,16 @@
                     (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
                 )
             )
+            ((eq? 'boolean-exp (car parsed-exp))
+                (cond
+                    ;boolean True void void
+                    ((void? (caddr parsed-exp)) (if (eq? 'True (cadr parsed-exp)) #t #f))
+                    ;boolean ! (var-exp a) void
+                    ((void? (cadddr parsed-exp)) (not (process (caddr parsed-exp))))
+                    ;boolean > (num-exp 1) (var-exp a)
+                    (else (calculate_boolean (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
+                )
+            )
             ((eq? 'func-exp (car parsed-exp))
                 (let
                     (
@@ -46,6 +56,13 @@
                         (update_base_environment (cdr environment))
                         ret_val
                     )
+                )
+            )
+            (
+                (eq? 'ask-exp (car parsed-exp))
+                    (if (process (cadr parsed-exp))
+                        (process (caddr parsed-exp))
+                        (process (cadddr parsed-exp))
                 )
             )
             ;create a scope, and add all the parameters and its value into the scope
