@@ -7,7 +7,7 @@
 
 ;(process (parse '(! ((1 + 1) < a))))
 
-(displayln "Task 1")
+(displayln "Task 1: ")
 (define a 10)
 (define b 22)
 (if (> a b)
@@ -19,7 +19,7 @@
     (displayln c))
    (displayln "otherwise"))
 
-(displayln "Task 2")
+(displayln "Task 2: ")
 (define while_loop
   (lambda ()
     (let loop ((a 1))
@@ -29,7 +29,7 @@
           (loop (+ a 1))) a))))
 (while_loop)
 
-(displayln "Task 3")
+(displayln "Task 3: ")
 (define do_while_loop
   (lambda ()
   (let ((a 1))
