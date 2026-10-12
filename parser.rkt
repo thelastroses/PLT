@@ -11,6 +11,14 @@
       ((number? exp) (list 'num-exp exp))
       ((string? exp) (list 'string-exp exp))
       ((null? exp) (displayln "ERROR: empty statement"))
+      ((and (equal? (length exp) 3) (equal? (cadr exp) '=))
+        (list 'assign-exp 
+          (list
+            (list 'var-exp (car exp))
+            (parse (caddr exp))
+          )
+        )
+      )
       ;a math is a triple element list, and the second element is a valid operator
       ;1 + a
       ((and (is_valid_math_op (cadr exp)) (equal? (length exp) 3))
