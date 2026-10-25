@@ -3,51 +3,18 @@
 (require "util.rkt")
 (require "interpreter.rkt")
 
-;(parse '(! ((1 + 1) < a)))
-
-;(process (parse '(! ((1 + 1) < a))))
-
-(displayln "Task 1: ")
-(define a 10)
-(define b 22)
-(if (> a b)
-    (let ((x 5)
-        (y 6)
-        (c (- a b)))
-    (displayln x)
-    (displayln y)
-    (displayln c))
-   (displayln "otherwise"))
-
-(displayln "Task 2: ")
-(define while_loop
-  (lambda ()
-    (let loop ((a 1))
-      (if (< a 10)
-        (begin
-          (displayln a)
-          (loop (+ a 1))) a))))
-(while_loop)
-
-(displayln "Task 3: ")
-(define do_while_loop
-  (lambda ()
-  (let ((a 1))
-    (let loop ()
-        (displayln a)
-        (set! a (+ a 1))
-        (if (< a 10)
-            (loop) a)))))
-(do_while_loop)
-
-
 ;### 10-06 week7d1 homework
 ;test if-condition
 ;while loop
 ;(while (boolean-exp)
 ;  (body)
 ;)
-;while loop will check boolean-exp each time
+;(process (parse '(fire a))) ;fire-exp (var-exp a) -> (displayln 1)
+
+;(print (is_valid_boolean_op '(a < 10)))
+;(parse '(while (a < 10) ((a = (a + 1)) (b = (b + 2))  (fire b))))
+;(process (parse '(while (a < 10) ((a = (a + 1)) (b = (b + 2))  (fire b)))))
+;while loop will check boolean-exp each time 
 ;when it is true, it will execute the body
 ;when it is false, it stops
 ;while loop has its own scope
@@ -60,3 +27,24 @@
 ;if boolean-exp is true, it will run the body
 ;otherwise, halt
 ;do-while loop also has its own scope
+
+(process (parse '(a = 5)))
+(process (parse '(a = 10)))
+(process (parse 'a))
+
+(process (parse '(b = 0)))
+(process (parse '(for (a = 0) (a < 10) (a = (a + 1)) ((b = (b + 1))))))
+(displayln (resolve_env environment 'a))
+(displayln (resolve_env environment 'b))
+
+;### 10-08 week7d2 homework
+;assign
+;(a = 1)
+;(assign-exp ((var-exp a) (num-exp 1)))
+;insert or update variable
+
+;for-loop
+;(b=0)(for((a = 1)(a < 10)(a = (a + 1)))(b = (b+1))
+;(for-exp ...)
+;assign a = 1 before all iteration
+;execute b = (b+1) and then a = (a+1) in each iteration

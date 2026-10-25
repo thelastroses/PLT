@@ -18,6 +18,9 @@
             ;since the parser already validate the statement of the language, interpreter can omit this stage, but it is still risky if you do not use the parser before interpreter
             ((equal? 'var-exp (car parsed-exp)) (resolve_env environment (cadr parsed-exp)))
             ((equal? 'num-exp (car parsed-exp)) (car (cdr parsed-exp)))
+            ;'(assign-exp ((var-exp a) (num-exp 2)))
+            ((equal? 'assign-exp (car parsed-exp))
+                (wolf_env environment (cadr (car (cadr parsed-exp))) (process (cadr (cadr parsed-exp)))))
             ((eq? 'math-exp (car parsed-exp))   ;math-exp + (math-exp + ...) (num-exp 10)
                 (cond
                     ;((or (void? (process (caddr parsed-exp)) ) (process (cadddr parsed-exp))))
@@ -51,7 +54,6 @@
                     )
                     (begin
                         (update_base_environment my_env)
-                        ;(print (cadr (cadr (process expression_lst))))
                         (set! ret_val (cadr (cadr (process expression_lst))))
                         (update_base_environment (cdr environment))
                         ret_val
@@ -88,6 +90,24 @@
                         )
                 )
             )
+            ((eq? (car parsed-exp) 'list-exp)
+                (map process (cdr parsed-exp))
+            )
+            ((eq? (car parsed-exp) 'while-exp)
+                (if (process (cadr parsed-exp))
+                    (process (append (caddr parsed-exp) (list parsed-exp)))
+                    (void)
+                )
+            )
+            ((eq? (car parsed-exp) 'for-exp)
+            (begin
+                (process (cadr parsed-exp))
+                (let loop () (if (process (caddr parsed-exp))
+                    (begin (process (list-ref parsed-exp 4))
+                    (process (cadddr parsed-exp)) (loop))
+                    (void)))))
+            ((eq? (car parsed-exp) 'fire-exp)
+                (displayln (process (cadr parsed-exp))))
             (else (displayln "ERROR: expression has not been supported yet."))
     )
     )

@@ -57,7 +57,7 @@
     (cond
       ((null? lst) left_part)
       ((eq? (car (car lst)) key) (append left_part (list (list key value)) (cdr lst)))
-      (else (update_pair (append left_part (list (list key value))) (cdr lst) key value))
+      (else (update_pair (list (car lst)) (cdr lst) key value))
       )
     )
   )
@@ -98,7 +98,7 @@
        ;wolf is updating the global variable scope
        (if
         (null? var_env)
-        (list (list var_name var_value))
+        (set! environment (list (list var_name var_value)))
         (set! environment (append (list (cons (list var_name var_value) (car var_env))) (cdr var_env)))
         ))
       (else
@@ -154,6 +154,7 @@
           ((eq? op '==) #t)
           ((eq? op '&&) #t)
           ((eq? op '||) #t)
+          (else #f)
         )
     )
 )

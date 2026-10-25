@@ -55,10 +55,34 @@
         (list
           'ask-exp
           (parse (cadr exp))
-          (cons 'bulk (caddr exp))
-          (cons 'bulk-exp (cadddr exp))
+          (cons 'list-exp (caddr exp))
+          (cons 'list-exp (cadddr exp))
         )
       )
+      ;while (boolean S) (S1, S2, S3, ...)
+      ((equal? 'while (car exp))
+        (list
+          'while-exp
+          (parse (cadr exp))
+          (cons
+            'list-exp
+            (map parse (caddr exp))
+          )
+        )
+      )
+      ((equal? 'for (car exp))
+        (list
+          'for-exp
+          (parse (cadr exp))
+          (parse (caddr exp))
+          (parse (cadddr exp))
+          (cons
+            'list-exp
+            (map parse (list-ref exp 4))
+          )
+        )
+      )
+      ((equal? 'fire (car exp)) (list 'fire-exp (parse (cadr exp))))
       (else (displayln "PARSER ERROR: the statement has not been supported yet."))
     )
   )
