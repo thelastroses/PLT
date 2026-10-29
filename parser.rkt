@@ -11,7 +11,33 @@
       ((number? exp) (list 'num-exp exp))
       ((string? exp) (list 'string-exp exp))
       ((null? exp) (displayln "ERROR: empty statement"))
-      ((and (equal? (length exp) 3) (equal? (cadr exp) '=))
+      ((eq? (car exp) 'main)
+        (if (and (= (length exp) 2)
+                (list? (cadr exp)) (andmap list? (cadr exp)))
+            (cons 'list-exp (map parse (cadr exp)))
+            (displayln "PARSER ERROR: main must hold a list of statements")))
+      ((eq? (car exp) 'func)
+        (if (and (= (length exp) 4)
+            (symbol? (cadr exp))
+            (list? (caddr exp))
+            (andmap list? (cadddr exp)))
+          (list 'func-def-exp
+            (list 'var-exp (cadr exp)) (map (lambda (parameter)
+                (list 'var-exp parameter)) (caddr exp))
+            (cons 'list-exp (map parse (cadddr exp))))
+          (displayln "PARSER ERROR: invalid function definition.")))
+      ((eq? (car exp) 'call)
+        (if (and (= (length exp) 3)
+            (symbol? (cadr exp))
+            (list? (caddr exp)))
+          (list 'call-exp
+            (list 'var-exp (cadr exp)) (map parse (caddr exp)))
+          (displayln "PARSER ERROR: invalid function call.")))
+      ((eq? (car exp) 'return)
+        (if (= (length exp) 2)
+          (list 'return-exp (parse (cadr exp)))
+          (displayln "PARSER ERROR: invalid return statement.")))
+        ((and (equal? (length exp) 3) (equal? (cadr exp) '=))
         (list 'assign-exp 
           (list
             (list 'var-exp (car exp))
@@ -55,8 +81,8 @@
         (list
           'ask-exp
           (parse (cadr exp))
-          (cons 'list-exp (caddr exp))
-          (cons 'list-exp (cadddr exp))
+          (cons 'list-exp (map parse (caddr exp)))
+          (cons 'list-exp (map parse (cadddr exp)))
         )
       )
       ;while (boolean S) (S1, S2, S3, ...)
@@ -70,15 +96,33 @@
           )
         )
       )
+      ;(do-while (S1, S2, S3, ...) (boolean S))
+      ((equal? 'do-while (car exp))
+        (list
+          'do-while-exp
+          (cons
+            'list-exp
+            (map parse (cadr exp))
+          )
+          (parse (caddr exp))
+        )
+      )
+      ;(for (list-exp S0_1, S0_2, ...) (boolean S) (list-exp S1_1, S1_2, ...) (list-exp S2_1, S2_2, ...))
       ((equal? 'for (car exp))
         (list
           'for-exp
-          (parse (cadr exp))
-          (parse (caddr exp))
-          (parse (cadddr exp))
           (cons
             'list-exp
-            (map parse (list-ref exp 4))
+            (map parse (cadr exp))
+          )
+          (parse (caddr exp))
+          (cons
+            'list-exp
+            (map parse (cadddr exp))
+          )
+          (cons
+            'list-exp
+            (map parse (cadr (cdddr exp)))
           )
         )
       )

@@ -22,13 +22,10 @@
             ((equal? 'assign-exp (car parsed-exp))
                 (wolf_env environment (cadr (car (cadr parsed-exp))) (process (cadr (cadr parsed-exp)))))
             ((eq? 'math-exp (car parsed-exp))   ;math-exp + (math-exp + ...) (num-exp 10)
-                (cond
-                    ;((or (void? (process (caddr parsed-exp)) ) (process (cadddr parsed-exp))))
-                    ((and (number? (process (caddr parsed-exp)) ) (number? (process (cadddr parsed-exp))))
-                        (do_math (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
-                    (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
-                )
-            )
+                (let ((left (process (caddr parsed-exp))) (right (process (cadddr parsed-exp))))
+                (if (and (number? left) (number? right))
+                    (do_math (cadr parsed-exp) left right)
+                    (displayln "INTERPRETER ERROR: non-numeric cannot apply math."))))
             ((eq? 'boolean-exp (car parsed-exp))
                 (cond
                     ;boolean True void void
@@ -91,26 +88,96 @@
                 )
             )
             ((eq? (car parsed-exp) 'list-exp)
-                (map process (cdr parsed-exp))
+                (run-statements (cdr parsed-exp))
             )
+            ((eq? (car parsed-exp) 'func-def-exp)
+                (wolf_env environment (cadr (cadr parsed-exp))
+                    (list 'func-val (map cadr (caddr parsed-exp)) 
+                    (cadddr parsed-exp))) (void))
+            ((eq? (car parsed-exp) 'call-exp)
+                (let ((function-name (cadr (cadr parsed-exp))))
+                    (let ((function (resolve_env environment function-name)))
+                        (if (and (list? function) (not (null? function)) (eq? (car function) 'func-val))
+                            (let (( arguments (map process (caddr parsed-exp))))
+                                (let (( parameters (cadr function)) (body (caddr function)))
+                                    (if ( = (length parameters) (length arguments))
+                                        (begin (update_base_environment (cons (create_pair_list '() parameters arguments) environment))
+                                            (let ((result (process body)))
+                                                (update_base_environment (cdr environment))
+                                                (if (the-return-value? result)
+                                                    (cadr result) (void))))
+                                                    (displayln "INTERPRETER ERROR: wrong number of arguments"))))
+                                                    (displayln "INTERPRETER ERROR: not a function")))))
+            ((eq? (car parsed-exp) 'return-exp)
+                (list 'return-val (process (cadr parsed-exp))))
             ((eq? (car parsed-exp) 'while-exp)
                 (if (process (cadr parsed-exp))
-                    (process (append (caddr parsed-exp) (list parsed-exp)))
+                    (begin
+                        (push_scope_to_environment)
+                        (process (caddr parsed-exp)) ;body
+                        (pop_scope_from_environment)
+                        (process parsed-exp)    ;next while-loop
+                    )
                     (void)
                 )
             )
+            ((eq? (car parsed-exp) 'do-while-exp)
+                (begin
+                    (push_scope_to_environment)
+                    (process (cadr parsed-exp))
+                    (pop_scope_from_environment)
+                    (if (process (caddr parsed-exp))
+                        (process parsed-exp)
+                        (void)
+                    )
+                )
+            )
             ((eq? (car parsed-exp) 'for-exp)
-            (begin
-                (process (cadr parsed-exp))
-                (let loop () (if (process (caddr parsed-exp))
-                    (begin (process (list-ref parsed-exp 4))
-                    (process (cadddr parsed-exp)) (loop))
-                    (void)))))
+                (begin
+                    (push_scope_to_environment)
+                    (process (cadr parsed-exp))
+                    ;let's reassemble it into the manner as a while-loop
+                    ;caddr -: boolean
+                    ;cadddr -: step
+                    ;caddddr -: body
+                    (let
+                        (
+                            (new_exp 
+                                (list
+                                    'while-exp
+                                    (caddr parsed-exp)
+                                    (append
+                                        (cadr (cdddr parsed-exp))
+                                        (cdr (cadddr parsed-exp))
+                                    )
+                                )
+                            )
+                        )
+                        (process new_exp)
+                    )
+                    (pop_scope_from_environment)
+                )
+            
+            )
             ((eq? (car parsed-exp) 'fire-exp)
                 (displayln (process (cadr parsed-exp))))
             (else (displayln "ERROR: expression has not been supported yet."))
     )
     )
 )
+
+
+(define the-return-value?
+  (lambda (result)
+    (and (list? result) (not (null? result))
+        (eq? (car result) 'return-val))))
+
+
+(define run-statements
+    (lambda (statements)
+        (cond ((null? statements) (void))
+        (else (let ((result (process (car statements))))
+            (if (the-return-value? result)
+                result (run-statements (cdr statements))))))))
 
 (provide (all-defined-out))

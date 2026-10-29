@@ -98,7 +98,7 @@
        ;wolf is updating the global variable scope
        (if
         (null? var_env)
-        (set! environment (list (list var_name var_value)))
+        (list (list var_name var_value))
         (set! environment (append (list (cons (list var_name var_value) (car var_env))) (cdr var_env)))
         ))
       (else
@@ -202,10 +202,31 @@
     )
 )
 
+
+(define the_return_value?
+  (lambda (result)
+    (and (list? result) (not (null? result)) 
+      (eq? (car result) 'return-val))))
+         
+
 (define
   update_base_environment
   (lambda (new_env)
     (set! environment new_env)
+  )
+)
+
+(define
+  push_scope_to_environment
+  (lambda ()
+    (set! environment (cons '() environment))
+  )
+)
+
+(define
+  pop_scope_from_environment
+  (lambda ()
+    (set! environment (cdr environment))
   )
 )
 
