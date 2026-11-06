@@ -57,7 +57,7 @@
     (cond
       ((null? lst) left_part)
       ((eq? (car (car lst)) key) (append left_part (list (list key value)) (cdr lst)))
-      (else (update_pair (list (car lst)) (cdr lst) key value))
+      (else (update_pair (append left_part (list (car lst))) (cdr lst) key value))
       )
     )
   )
@@ -202,13 +202,6 @@
     )
 )
 
-
-(define the_return_value?
-  (lambda (result)
-    (and (list? result) (not (null? result)) 
-      (eq? (car result) 'return-val))))
-         
-
 (define
   update_base_environment
   (lambda (new_env)
@@ -218,8 +211,8 @@
 
 (define
   push_scope_to_environment
-  (lambda ()
-    (set! environment (cons '() environment))
+  (lambda (scope)
+    (set! environment (cons scope environment))
   )
 )
 

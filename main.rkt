@@ -3,119 +3,52 @@
 (require "util.rkt")
 (require "interpreter.rkt")
 
-;### 10-06 week7d1 homework
-;test if-condition
-;while loop
-;(while (boolean-exp)
-;  (body)
-;)
-;(process (parse '(fire a))) ;fire-exp (var-exp a) -> (displayln 1)
+; (process (parse '(
+;   main
+;   (a = 1)
+;   (b = 2)
+;   (func add (a b) (
+;     (c = (a + b))
+;     (return c)
+;   ))
+;   (c = (call add (a b)))
+;   (fire c)
+; )))
 
-;(print (is_valid_boolean_op '(a < 10)))
-;(parse '(while (a < 10) ((a = (a + 1)) (b = (b + 2))  (fire b))))
-(print environment)
-(process (parse '(c = 1)))
-(print environment)
-(process (parse '(while (a < 10) ((a = (a + 1)) (c = (b + 2)) (fire c) (b = c))))) 
-(print environment)
-;(process (parse '(do-while ((a = (a + 1)) (b = (b + 2)) (fire b)) (a < 10))))
-;while loop will check boolean-exp each time 
-;when it is true, it will execute the body
-;when it is false, it stops
-;while loop has its own scope
+;### homework: greatest common divisor
+;write gcd with (Euclid's algorithm) in our defined language in two ways:
+;  1. loop manner: use while (or do-while / for) to repeat the Euclid step
+;  2. recursive manner: the function calls itself
+;test 3 cases for each way, for example:
+;  gcd(48, 18) = 6
+;  gcd(17, 5) = 1
+;  gcd(100, 75) = 25
+;write your code below
+;1b
 
-;do-while loop
-;(do-while
-;  (body)
-;) (boolean-exp)
-;do-while loop will run body for the first time unconditionally
-;if boolean-exp is true, it will run the body
-;otherwise, halt
-;do-while loop also has its own scope
+(process (parse '(
+  main
 
-;### 10-08 week7d2 homework
-;assign
-;(a = 1)
-;(assign-exp ((var-exp a) (num-exp 1)))
-;insert or update variable
+  ;loop
+  (func gcd_loop (x y) (
+    (while (! (y == 0))
+      ((temp = (x % y))
+        (x = y)
+        (y = temp)))
+    (return x)))
 
-;for-loop
-;(b=0)(for((a = 1)(a < 10)(a = (a + 1)))(b = (b+1))
-;(for-exp ...)
-;assign a = 1 before all iteration
-;execute b = (b+1) and then a = (a+1) in each iteration
+  ;recursion
+  (func gcd_recursive (x y) (
+    (ask (y == 0)
+      ((return x))
+      ((return (call gcd_recursive (y (x % y))))))))
 
-(newline)
-(newline)
-(newline)
-;T1
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T1")
-(process (parse '(main ((a = 5) (b = (a * 2)) (fire b)))))
-(print environment)
-(newline)
-(newline)
+  ;loop tests
+  (fire (call gcd_loop (48 18)))
+  (fire (call gcd_loop (17 5)))
+  (fire (call gcd_loop (100 75)))
 
-
-
-;T2
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T2")
-(process (parse '(main (a = 1))))
-(print environment)
-(newline)
-(newline)
-
-
-;T3
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T3")
-(displayln (process (parse '(main ((a = 0) (b = 0) (while (b < 50) ((a = (a + 50)) (b = (b + 1)))) (c = 1) (fire a) (fire c))))))
-(print environment)
-(newline)
-(newline)
-
-
-;T4
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T4")
-(process (parse '(main ((func hello (n) ((fire n))) (y = (call hello (7))) (fire y)))))
-(print environment)
-(newline)
-(newline)
-
-
-;T5
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T5")
-(process (parse '(main ((func first (n) ((return n) (fire 999))) (fire (call first (3)))))))
-(print environment)
-(newline)
-(newline)
-
-
-;T6
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T6")
-(process (parse '(main ((func sum_seq (a b s) ((return a))) (call sum_seq (1 2))))))
-(print environment)
-(newline)
-(newline)
-
-
-; T7
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T7")
-(process (parse '(main ((q = 5) (call q (1))))))
-(print environment)
-(newline)
-(newline)
-
-
-; T8
-(update_base_environment (list '((a 1) (b 2))))
-(displayln "T8")
-(process (parse '(main ((k = 10) (func addone (k) ((return (k + 1)))) (fire (call addone ((k * 2)))) (fire k)))))
-(print environment)
-(newline)
-(newline)
+  ;recursive tests
+  (fire (call gcd_recursive (48 18)))
+  (fire (call gcd_recursive (17 5)))
+  (fire (call gcd_recursive (100 75))))))

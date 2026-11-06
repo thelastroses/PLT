@@ -11,33 +11,10 @@
       ((number? exp) (list 'num-exp exp))
       ((string? exp) (list 'string-exp exp))
       ((null? exp) (displayln "ERROR: empty statement"))
-      ((eq? (car exp) 'main)
-        (if (and (= (length exp) 2)
-                (list? (cadr exp)) (andmap list? (cadr exp)))
-            (cons 'list-exp (map parse (cadr exp)))
-            (displayln "PARSER ERROR: main must hold a list of statements")))
-      ((eq? (car exp) 'func)
-        (if (and (= (length exp) 4)
-            (symbol? (cadr exp))
-            (list? (caddr exp))
-            (andmap list? (cadddr exp)))
-          (list 'func-def-exp
-            (list 'var-exp (cadr exp)) (map (lambda (parameter)
-                (list 'var-exp parameter)) (caddr exp))
-            (cons 'list-exp (map parse (cadddr exp))))
-          (displayln "PARSER ERROR: invalid function definition.")))
-      ((eq? (car exp) 'call)
-        (if (and (= (length exp) 3)
-            (symbol? (cadr exp))
-            (list? (caddr exp)))
-          (list 'call-exp
-            (list 'var-exp (cadr exp)) (map parse (caddr exp)))
-          (displayln "PARSER ERROR: invalid function call.")))
-      ((eq? (car exp) 'return)
-        (if (= (length exp) 2)
-          (list 'return-exp (parse (cadr exp)))
-          (displayln "PARSER ERROR: invalid return statement.")))
-        ((and (equal? (length exp) 3) (equal? (cadr exp) '=))
+      ((equal? (car exp) 'main)
+        (cons 'list-exp (map parse (cdr exp)))
+      )
+      ((and (equal? (length exp) 3) (equal? (cadr exp) '=))
         (list 'assign-exp 
           (list
             (list 'var-exp (car exp))
@@ -71,7 +48,7 @@
           (list
             'func-exp
             (create_pair_list '() (map parse (cadr exp)) (map parse (cadddr exp)))
-            (cons 'bulk-exp (map parse (caddr exp)))
+            (cons 'list-exp (map parse (caddr exp)))
           )
           (displayln "PARSER ERROR: this is not a valid anonymous function definition."))
       )
@@ -127,6 +104,40 @@
         )
       )
       ((equal? 'fire (car exp)) (list 'fire-exp (parse (cadr exp))))
+  ;(func add (a b) (
+  ;  (c = a + b)
+  ;  (return c)
+  ;)) 
+      ((equal? 'func (car exp))
+        (list
+          'assign-exp
+          (list 
+            (parse (cadr exp))
+          ;do we store the parsed function definition in the variable scope or do we store the non-parsed form
+            (list
+              'new-func-exp
+              (map parse (caddr exp))
+              (cons
+                'list-exp
+                (map parse (cadddr exp))
+              )
+            )
+          )
+        )
+      )
+      ((equal? 'return (car exp))
+        (list
+          'return-exp
+          (parse (cadr exp))
+        )
+      )
+      ((equal? 'call (car exp))
+        (list
+          'call-exp
+          (parse (cadr exp))
+          (map parse (caddr exp))
+        )
+      )
       (else (displayln "PARSER ERROR: the statement has not been supported yet."))
     )
   )

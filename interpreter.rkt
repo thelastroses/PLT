@@ -1,6 +1,16 @@
 #lang racket
 (require "util.rkt")
 
+;a return happened when the nearest #return slot is no longer #none
+;outside of any function there is no slot, resolve_env gives void, so it never stops
+(define
+    has_returned
+    (lambda ()
+        (let ((ret (resolve_env environment '|#return|)))
+            (not (or (void? ret) (eq? ret '|#none|))))
+    )
+)
+
 ;homework week5 day 1, 9/22
 ;create a function, that "process" the parser's results
 ;if it is a var-exp, resolve the value if can find, otherwise output void error
@@ -22,10 +32,13 @@
             ((equal? 'assign-exp (car parsed-exp))
                 (wolf_env environment (cadr (car (cadr parsed-exp))) (process (cadr (cadr parsed-exp)))))
             ((eq? 'math-exp (car parsed-exp))   ;math-exp + (math-exp + ...) (num-exp 10)
-                (let ((left (process (caddr parsed-exp))) (right (process (cadddr parsed-exp))))
-                (if (and (number? left) (number? right))
-                    (do_math (cadr parsed-exp) left right)
-                    (displayln "INTERPRETER ERROR: non-numeric cannot apply math."))))
+                (cond
+                    ;((or (void? (process (caddr parsed-exp)) ) (process (cadddr parsed-exp))))
+                    ((and (number? (process (caddr parsed-exp)) ) (number? (process (cadddr parsed-exp))))
+                        (do_math (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
+                    (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
+                )
+            )
             ((eq? 'boolean-exp (car parsed-exp))
                 (cond
                     ;boolean True void void
@@ -41,19 +54,21 @@
                     (
                         ;cons the parameter list with the original environment
                         ;(((var-exp a) (num-exp 1)) ((var-exp b) (var-exp a)))
-                        (my_env 
-                            (cons (map (lambda (pair) (list (cadr (car pair)) (process (cadr pair)))) (cadr parsed-exp))
-                        environment))
+                        (new_scope
+                            (map (lambda (pair) (list (cadr (car pair)) (process (cadr pair)))) (cadr parsed-exp))
+                        )
                         (expression_lst
                             (caddr parsed-exp))
-                            ;(set! environment (cdr environment)))
-                        (ret_val (void))
                     )
                     (begin
-                        (update_base_environment my_env)
-                        (set! ret_val (cadr (cadr (process expression_lst))))
-                        (update_base_environment (cdr environment))
-                        ret_val
+                        ;every function owns a #return slot, initialized as #none (void means "not exists" in resolve)
+                        (push_scope_to_environment (cons (list '|#return| '|#none|) new_scope))
+                        (process expression_lst)
+                        ;read the slot before the scope is popped
+                        (define ret (resolve_env environment '|#return|))
+                        (pop_scope_from_environment)
+                        ;no return happened, the default return value is void
+                        (if (eq? ret '|#none|) (void) ret)
                     )
                 )
             )
@@ -88,45 +103,46 @@
                 )
             )
             ((eq? (car parsed-exp) 'list-exp)
-                (run-statements (cdr parsed-exp))
+                ;walk through each statement, and check if it is return
+                ;if it is a return, update the value of the varaible scope of the "#return" to be the value
+                ;and it also stop the iterations of the execution
+                ;if it is not a return, we simply run this expression, and make the iteration continues
+                ;a return may also happen inside a nested ask/while, so check the #return slot after each statement
+                (cond
+                    ((null? (cdr parsed-exp)) (void))
+                    (else
+                        (begin
+                            (process (cadr parsed-exp))
+                            (if (has_returned)
+                                (void)
+                                (process (cons 'list-exp (cddr parsed-exp)))
+                            )
+                        )
+                    )
+                )
+                ;(map process (cdr parsed-exp))
             )
-            ((eq? (car parsed-exp) 'func-def-exp)
-                (wolf_env environment (cadr (cadr parsed-exp))
-                    (list 'func-val (map cadr (caddr parsed-exp)) 
-                    (cadddr parsed-exp))) (void))
-            ((eq? (car parsed-exp) 'call-exp)
-                (let ((function-name (cadr (cadr parsed-exp))))
-                    (let ((function (resolve_env environment function-name)))
-                        (if (and (list? function) (not (null? function)) (eq? (car function) 'func-val))
-                            (let (( arguments (map process (caddr parsed-exp))))
-                                (let (( parameters (cadr function)) (body (caddr function)))
-                                    (if ( = (length parameters) (length arguments))
-                                        (begin (update_base_environment (cons (create_pair_list '() parameters arguments) environment))
-                                            (let ((result (process body)))
-                                                (update_base_environment (cdr environment))
-                                                (if (the-return-value? result)
-                                                    (cadr result) (void))))
-                                                    (displayln "INTERPRETER ERROR: wrong number of arguments"))))
-                                                    (displayln "INTERPRETER ERROR: not a function")))))
-            ((eq? (car parsed-exp) 'return-exp)
-                (list 'return-val (process (cadr parsed-exp))))
             ((eq? (car parsed-exp) 'while-exp)
                 (if (process (cadr parsed-exp))
                     (begin
-                        (push_scope_to_environment)
+                        (push_scope_to_environment '())
                         (process (caddr parsed-exp)) ;body
                         (pop_scope_from_environment)
-                        (process parsed-exp)    ;next while-loop
+                        ;stop the loop when the body returned
+                        (if (has_returned)
+                            (void)
+                            (process parsed-exp)    ;next while-loop
+                        )
                     )
                     (void)
                 )
             )
             ((eq? (car parsed-exp) 'do-while-exp)
                 (begin
-                    (push_scope_to_environment)
+                    (push_scope_to_environment '())
                     (process (cadr parsed-exp))
                     (pop_scope_from_environment)
-                    (if (process (caddr parsed-exp))
+                    (if (and (not (has_returned)) (process (caddr parsed-exp)))
                         (process parsed-exp)
                         (void)
                     )
@@ -134,7 +150,7 @@
             )
             ((eq? (car parsed-exp) 'for-exp)
                 (begin
-                    (push_scope_to_environment)
+                    (push_scope_to_environment '())
                     (process (cadr parsed-exp))
                     ;let's reassemble it into the manner as a while-loop
                     ;caddr -: boolean
@@ -159,25 +175,33 @@
                 )
             
             )
+            ;store the value into the nearest #return slot, which belongs to the current function
+            ((eq? (car parsed-exp) 'return-exp)
+                (wolf_env environment '|#return| (process (cadr parsed-exp))))
             ((eq? (car parsed-exp) 'fire-exp)
                 (displayln (process (cadr parsed-exp))))
+            ;'new-func-exp
+            ;(map parse (caddr exp))
+            ;(list
+             ; 'list-exp
+              ;(map parse (cadddr exp))
+            ;)
+          ;)
+          ((eq? (car parsed-exp) 'new-func-exp) parsed-exp)
+            ((eq? (car parsed-exp) 'call-exp)
+                (let*
+                    (
+                        (func (resolve_env environment (cadr (cadr parsed-exp))))
+                        (function (list 'func-exp 
+                            (create_pair_list '() (cadr func) (caddr parsed-exp))
+                            (caddr func)
+                        ))
+                    )
+                    (process function)
+                )
+            )
             (else (displayln "ERROR: expression has not been supported yet."))
-    )
-    )
+    ))
 )
-
-
-(define the-return-value?
-  (lambda (result)
-    (and (list? result) (not (null? result))
-        (eq? (car result) 'return-val))))
-
-
-(define run-statements
-    (lambda (statements)
-        (cond ((null? statements) (void))
-        (else (let ((result (process (car statements))))
-            (if (the-return-value? result)
-                result (run-statements (cdr statements))))))))
 
 (provide (all-defined-out))
