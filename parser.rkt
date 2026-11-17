@@ -7,8 +7,10 @@
   (lambda
       (exp)
     (cond
+      ((or (equal? exp 'True) (equal? exp 'False))
+        (list 'boolean-exp exp (void) (void)))
       ((symbol? exp) (list 'var-exp exp))
-      ((number? exp) (list 'num-exp exp))
+      ((number? exp) (list 'num-exp (list 'num exp)))
       ((string? exp) (list 'string-exp exp))
       ((null? exp) (displayln "ERROR: empty statement"))
       ((equal? (car exp) 'main)

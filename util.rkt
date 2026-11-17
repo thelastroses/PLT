@@ -1,11 +1,26 @@
 #lang racket
+
 (define
   scope
   (list ;key-value pairs
-   (list 'a 1) ;(#symbol value)
-   '(b 2)
+   (list 'a (list 'num 1)) ;(#symbol value)
+   (list 'b (list 'num 2))
+   (list 'c (list 'str "ccc"))
+   (list 'e (list 'bool #t))
+   (list 'f (list 'bool #f))
    )
   )
+
+;data types
+;#data-type
+;#number?: num
+;#symbol?: sym
+;#boolean?: bool
+;#string?: str
+;#function?: func
+;#class?: cls: it holds the definition of the class
+;#object?: obj
+;#void?: |void
 
 ;var_env:= var_scop x (var_env)
 (define
@@ -152,6 +167,7 @@
           ((eq? op '<) #t)
           ((eq? op '<=) #t)
           ((eq? op '==) #t)
+          ((eq? op '===) #t)
           ((eq? op '&&) #t)
           ((eq? op '||) #t)
           (else #f)
@@ -165,30 +181,43 @@
   do_math
     (lambda
       (op left_operand right_operand)
-      (cond
-        ((eq? '+ op) (+ left_operand right_operand))
-        ((eq? '- op) (- left_operand right_operand))
-        ((eq? '* op) (* left_operand right_operand))
-        ((eq? '/ op) (/ left_operand right_operand))
-        ((eq? '// op) (quotient left_operand right_operand))
-        ((eq? '% op) (modulo left_operand right_operand))
+      (let
+        (
+          (left_val (check_type 'num left_operand))
+          (right_val (check_type 'num right_operand))
+        )
+        (list 'num
+          (cond
+            ((eq? '+ op) (+ left_val right_val))
+            ((eq? '- op) (- left_val right_val))
+            ((eq? '* op) (* left_val right_val))
+            ((eq? '/ op) (/ left_val right_val))
+            ((eq? '// op) (quotient left_val right_val))
+            ((eq? '% op) (modulo left_val right_val))
+          )
+        )
       )
     )
 )
+
 ;if the program runs, don't touch it.
 (define
   calculate_boolean ;brady gave the function name
     (lambda
       (op left_operand right_operand)
-      (cond
-        ((eq? '> op) (> left_operand right_operand))
-        ((eq? '>= op) (>= left_operand right_operand))
-        ((eq? '< op) (< left_operand right_operand))
-        ((eq? '<= op) (<= left_operand right_operand))
-        ((eq? '== op) (eq? left_operand right_operand))
-        ((eq? '&& op) (and left_operand right_operand))
-        ((eq? '|| op) (or left_operand right_operand))
-      ))
+      (list 'bool
+        (cond
+          ((eq? '> op) (> (check_type 'num left_operand) (check_type 'num right_operand)))
+          ((eq? '>= op) (>= (check_type 'num left_operand) (check_type 'num right_operand)))
+          ((eq? '< op) (< (check_type 'num left_operand) (check_type 'num right_operand)))
+          ((eq? '<= op) (<= (check_type 'num left_operand) (check_type 'num right_operand)))
+          ((eq? '== op) (equal? (cadr left_operand) (cadr right_operand)))
+          ((eq? '=== op) (and (equal? left_operand right_operand)))
+          ((eq? '&& op) (and (check_type 'bool left_operand) (check_type 'bool right_operand)))
+          ((eq? '|| op) (or (check_type 'bool left_operand) (check_type 'bool right_operand)))
+        )
+      )
+    )
 )
 
 (define
@@ -222,5 +251,24 @@
     (set! environment (cdr environment))
   )
 )
+
+;by given (num 1), we need to check if this is the data type num we want
+(define
+  check_type
+  (lambda(type pair) (
+    if (equal? type (car pair))
+      (cadr pair)
+      (error (string-append "Data type error: expect " (symbol->string type) "."))
+    )
+  )
+)
+
+(define to_string
+  (lambda (value)
+    (cond
+      ((equal? 'bool (car value)) (if (cadr value) "True" "False"))
+      ((equal? 'num (car value)) (number->string (cadr value)))
+      ((equal? 'str (car value)) (cadr value)))))
+      
 
 (provide (all-defined-out))

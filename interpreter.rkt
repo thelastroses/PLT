@@ -27,28 +27,30 @@
             ;programmer should be responsible for what he wrote, rather than hand it to the error handler
             ;since the parser already validate the statement of the language, interpreter can omit this stage, but it is still risky if you do not use the parser before interpreter
             ((equal? 'var-exp (car parsed-exp)) (resolve_env environment (cadr parsed-exp)))
+            ;('num-exp ())
             ((equal? 'num-exp (car parsed-exp)) (car (cdr parsed-exp)))
             ;'(assign-exp ((var-exp a) (num-exp 2)))
             ((equal? 'assign-exp (car parsed-exp))
                 (wolf_env environment (cadr (car (cadr parsed-exp))) (process (cadr (cadr parsed-exp)))))
             ((eq? 'math-exp (car parsed-exp))   ;math-exp + (math-exp + ...) (num-exp 10)
-                (cond
-                    ;((or (void? (process (caddr parsed-exp)) ) (process (cadddr parsed-exp))))
-                    ((and (number? (process (caddr parsed-exp)) ) (number? (process (cadddr parsed-exp))))
-                        (do_math (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
-                    (else (displayln "INTERPRETOR ERROR: non-numeric cannot apply math."))
+                (do_math 
+                    (cadr parsed-exp) 
+                    (process (caddr parsed-exp))
+                    (process (cadddr parsed-exp))
                 )
             )
             ((eq? 'boolean-exp (car parsed-exp))
                 (cond
                     ;boolean True void void
-                    ((void? (caddr parsed-exp)) (if (eq? 'True (cadr parsed-exp)) #t #f))
+                    ((void? (caddr parsed-exp)) (if (eq? 'True (cadr parsed-exp)) (list 'bool #t) (list 'bool #f)))
                     ;boolean ! (var-exp a) void
-                    ((void? (cadddr parsed-exp)) (not (process (caddr parsed-exp))))
+                    ;process (var-exp a) -> ('bool #t)
+                    ((void? (cadddr parsed-exp)) (list 'bool (not (cadr (process (caddr parsed-exp))))))
                     ;boolean > (num-exp 1) (var-exp a)
                     (else (calculate_boolean (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
                 )
             )
+            ((equal? 'string-exp (car parsed-exp)) (list 'str (car (cdr parsed-exp))))
             ((eq? 'func-exp (car parsed-exp))
                 (let
                     (
@@ -68,13 +70,13 @@
                         (define ret (resolve_env environment '|#return|))
                         (pop_scope_from_environment)
                         ;no return happened, the default return value is void
-                        (if (eq? ret '|#none|) (void) ret)
+                        (if (eq? ret '|#none|) (list 'void (void)) ret)
                     )
                 )
             )
             (
                 (eq? 'ask-exp (car parsed-exp))
-                    (if (process (cadr parsed-exp))
+                    (if (check_type 'bool (process (cadr parsed-exp)))
                         (process (caddr parsed-exp))
                         (process (cadddr parsed-exp))
                 )
@@ -123,7 +125,7 @@
                 ;(map process (cdr parsed-exp))
             )
             ((eq? (car parsed-exp) 'while-exp)
-                (if (process (cadr parsed-exp))
+                (if (check_type 'bool (process (cadr parsed-exp)))
                     (begin
                         (push_scope_to_environment '())
                         (process (caddr parsed-exp)) ;body
@@ -142,7 +144,7 @@
                     (push_scope_to_environment '())
                     (process (cadr parsed-exp))
                     (pop_scope_from_environment)
-                    (if (and (not (has_returned)) (process (caddr parsed-exp)))
+                    (if (and (not (has_returned)) (check_type 'bool (process (caddr parsed-exp))))
                         (process parsed-exp)
                         (void)
                     )
@@ -179,7 +181,7 @@
             ((eq? (car parsed-exp) 'return-exp)
                 (wolf_env environment '|#return| (process (cadr parsed-exp))))
             ((eq? (car parsed-exp) 'fire-exp)
-                (displayln (process (cadr parsed-exp))))
+                (displayln (to_string (process (cadr parsed-exp)))))
             ;'new-func-exp
             ;(map parse (caddr exp))
             ;(list
