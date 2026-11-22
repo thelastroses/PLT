@@ -186,6 +186,7 @@
           (left_val (check_type 'num left_operand))
           (right_val (check_type 'num right_operand))
         )
+        ;wrap the result again, so it can be used by the next expression
         (list 'num
           (cond
             ((eq? '+ op) (+ left_val right_val))
@@ -205,14 +206,17 @@
   calculate_boolean ;brady gave the function name
     (lambda
       (op left_operand right_operand)
+      ;wrap the result as a bool
       (list 'bool
         (cond
           ((eq? '> op) (> (check_type 'num left_operand) (check_type 'num right_operand)))
           ((eq? '>= op) (>= (check_type 'num left_operand) (check_type 'num right_operand)))
           ((eq? '< op) (< (check_type 'num left_operand) (check_type 'num right_operand)))
           ((eq? '<= op) (<= (check_type 'num left_operand) (check_type 'num right_operand)))
+          ;equal? instead of eq?, so strings with the same content are equal
           ((eq? '== op) (equal? (cadr left_operand) (cadr right_operand)))
-          ((eq? '=== op) (and (equal? left_operand right_operand)))
+          ;=== compares the type and the value
+          ((eq? '=== op) (equal? left_operand right_operand))
           ((eq? '&& op) (and (check_type 'bool left_operand) (check_type 'bool right_operand)))
           ((eq? '|| op) (or (check_type 'bool left_operand) (check_type 'bool right_operand)))
         )
@@ -256,19 +260,27 @@
 (define
   check_type
   (lambda(type pair) (
-    if (equal? type (car pair))
+    ;pair? first, so a plain value gives a data type error instead of a racket car error
+    if (and (pair? pair) (equal? type (car pair)))
       (cadr pair)
-      (error (string-append "Data type error: expect " (symbol->string type) "."))
+      (error (format "Data type error: expect ~a, got ~a" type pair))
     )
   )
 )
 
-(define to_string
+;un-wrap a value for the output of fire
+(define
+  value_to_string
   (lambda (value)
     (cond
       ((equal? 'bool (car value)) (if (cadr value) "True" "False"))
       ((equal? 'num (car value)) (number->string (cadr value)))
-      ((equal? 'str (car value)) (cadr value)))))
-      
+      ((equal? 'str (car value)) (cadr value))
+      ((equal? 'func (car value)) "<function>")
+      ((equal? 'void (car value)) "void")
+      (else (error (format "Data type error: unknown data type ~a" value)))
+    )
+  )
+)
 
 (provide (all-defined-out))

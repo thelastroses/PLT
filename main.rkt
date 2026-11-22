@@ -4,13 +4,27 @@
 (require "interpreter.rkt")
 
 
+(require "heap.rkt")
+
+(displayln environment)
+(parse '(
+  main
+  (fire (a + b))
+))
+;(check_type 'num '(num 1))
+;(check_type 'num '(str "111"))
+(process (parse '(
+  main
+  (fire (a > b))
+  (fire (e && f))
   
+)))
+
 ;### homework: data type in the variable scope
 ;every value of our language is a tagged pair (type value), e.g. (num 1) (str "ccc") (bool #t)
 ;complete the data type update so that all the tests below run, and print the expected output in the comments
 ;starting scope: a = 1, b = 2, c = "ccc", e = True, f = False
 
-(displayln "Section 1: ")
 ;1. variables and literals
 (process (parse '(
   main
@@ -19,9 +33,6 @@
   (fire True)     ;True
 )))
 
-(newline)
-
-(displayln "Section 2: ")
 ;2. math, and using a result again
 (process (parse '(
   main
@@ -31,12 +42,6 @@
   (fire (n - 1))          ;5
 )))
 
-
-  (newline)
-
-
-
-(displayln "Section 3: ")
 ;3. comparison and logic
 (process (parse '(
   main
@@ -46,11 +51,6 @@
   (fire (! e))            ;False
 )))
 
-
-  (newline)
-
-
-(displayln "Section 4: ")
 ;4. strings and equality
 (process (parse '(
   main
@@ -60,12 +60,6 @@
   (fire (a === c))        ;False
 )))
 
-
-  (newline)
-
-
-
-(displayln "Section 5: ")
 ;5. conditions must be a boolean, and False must really be false
 (process (parse '(
   main
@@ -83,11 +77,6 @@
   (fire m)                ;1
 )))
 
-
-  (newline)
-
-
-(displayln "Section 6: ")
 ;6. functions
 (process (parse '(
   main
@@ -106,36 +95,24 @@
   (fire (call nothing ()))      ;void
 )))
 
-
-  (newline)
-
-
-
-;7. gcd: paste your gcd_loop and gcd_rec from week 10 here, then remove the ; of the tests
-(displayln "Section 7: ")
-
-
+;7. gcd in both ways
 (process (parse '(
   main
-
-
-  ;loop
   (func gcd_loop (x y) (
-    (while (! (y == 0))
-      ((temp = (x % y))
-        (x = y)
-        (y = temp)))
-    (return x)))
-
-
-  ;recursion
+    (while (y > 0) (
+      (t = (x % y))
+      (x = y)
+      (y = t)
+    ))
+    (return x)
+  ))
   (func gcd_rec (x y) (
     (ask (y == 0)
       ((return x))
-      ((return (call gcd_rec (y (x % y))))))))
+      ((return (call gcd_rec (y (x % y)))))
+    )
+  ))
 )))
-
-
 (process (parse '(fire (call gcd_loop (48 18)))))   ;6
 (process (parse '(fire (call gcd_loop (17 5)))))    ;1
 (process (parse '(fire (call gcd_loop (100 75)))))  ;25
@@ -143,10 +120,84 @@
 (process (parse '(fire (call gcd_rec (17 5)))))     ;1
 (process (parse '(fire (call gcd_rec (100 75)))))   ;25
 
-
-  (newline)
-
-
-(displayln "Section 8: ")
 ;8. every value stored in the variable scope must be tagged, e.g. (n (num 6)) (g (bool #t)) (s (str abc))
 (displayln environment)
+
+;homework: heap
+;the heap stores items as (id value), e.g. (|#1| (num 3)), and the newest item is at the front
+;a deleted item stays in the heap as (id #empty), and its id is never used again
+;complete heap.rkt so that the tests below print the expected output in the comments
+(newline)
+(newline)
+(newline)
+(newline)
+(newline)
+(newline)
+(newline)
+(displayln "### homework: heap")
+
+(parse '(func size () (return (w * h))))
+(define class1 (list 'cls 'rectangle '(w h) (list (list 'func 'size '() (list '(return w * h))))))
+(parse class1)
+
+(newline)
+(newline)
+
+
+;prints the error message instead of stopping the program
+(define show_error
+  (lambda (test)
+    (with-handlers ((exn:fail? (lambda (e) (displayln (exn-message e))))) (test))))
+
+(newline)
+(newline)
+
+(displayln "#9. create-item: every new item gets a new id")
+;9. create-item: every new item gets a new id
+(define p (create_heap_item '(num 3)))
+(define q (create_heap_item '(str "abc")))
+(define r (create_heap_item '(bool #t)))
+(displayln p)                   ;#1
+(displayln q)                   ;#2
+(displayln r)                   ;#3
+
+
+(newline)
+(newline)
+
+(displayln "#10. read-item: find the value by the id")
+;10. read-item: find the value by the id
+(displayln (read-item p))       ;(num 3)
+(displayln (read-item q))       ;(str abc)
+(displayln (read-item r))       ;(bool #t)
+
+(newline)
+(newline)
+
+(displayln "#11. update-item: change one item, the others stay the same")
+;11. update-item: change one item, the others stay the same
+(update-item p '(num 10))
+(update-item q '(str "xyz"))
+(displayln (read-item p))       ;(num 10)
+(displayln (read-item q))       ;(str xyz)
+(displayln (read-item r))       ;(bool #t)
+
+(newline)
+(newline)
+
+(displayln "#12. delete-item: the item becomes #empty, and its id is never used again")
+;12. delete-item: the item becomes #empty, and its id is never used again
+(delete-item q)
+(displayln heap)                ;((#3 (bool #t)) (#2 #empty) (#1 (num 10)))
+(define s (create_heap_item '(num 7)))
+(displayln s)                   ;#4
+(displayln heap)                ;((#4 (num 7)) (#3 (bool #t)) (#2 #empty) (#1 (num 10)))
+
+(newline)
+(newline)
+
+(displayln "#13. errors: a deleted or unknown id cannot be used")
+;13. errors: a deleted or unknown id cannot be used
+(show_error (lambda () (read-item q)))             ;Heap error: #2 has been deleted
+(show_error (lambda () (update-item '|#99| '(num 1))))   ;Heap error: #99 does not exist
+(show_error (lambda () (delete-item q)))           ;Heap error: #2 has been deleted

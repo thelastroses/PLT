@@ -1,44 +1,55 @@
-# Week 11 Day 2 Homework: Data Types in the Variable Scope
+# Week 12 Day 1 Homework: The Heap
 
 **Due:** _TBD_
 
-In class we started adding data types to our language. Every value carries a type tag:
+The variable scope works like a stack: a value lives only until its scope is popped. Objects need to live longer than the function that created them, so they are stored in a separate memory, the **heap**. Variables will later hold only the **id** of a heap item.
+
+In this homework you build the heap itself. Classes and objects come later and will use the functions you write here.
+
+## The heap structure
+
+The heap in `heap.rkt` is a list of `(id value)` pairs, the same shape as a variable scope:
 
 ```racket
-(num 1)  (str "ccc")  (bool #t)  ;see the type list at the top of util.rkt
+((|#3| (bool #t)) (|#2| |#empty|) (|#1| (num 10)))
 ```
 
-Only part of the project uses the tags so far. Your job is to finish the update so that the **whole project** works with tagged values.
-
-## The rule
-
-> **Every value of our language is a tagged pair `(type value)`.** That includes every value that `process` returns, that is stored in the variable scope, passed as a function argument, or returned from a function.
->
-> **Unwrap only where Scheme has to compute**, for example in math or comparisons, and **wrap the result again**.
+- **Ids** are symbols made from `heap_counter`: `|#1|`, `|#2|`, `|#3|`, ... Racket prints them as `#1`, `#2`, `#3` with `display`.
+- **Values** are tagged values from last week, such as `(num 3)` or `(str "abc")`.
+- **New items** are added at the **front** of the heap.
+- **A deleted item stays in the heap** with the value `|#empty|`, and its id is **never used again**.
 
 ## What to do
 
-The bottom of `main.rkt` has a test program, sections 1–8. Each line has its expected output in a comment. Right now most of it fails. Update `parser.rkt`, `util.rkt` and `interpreter.rkt` until:
+Complete the five functions described by the comments in `heap.rkt`:
 
-1. **Sections 1–6** run and print exactly the expected output.
-2. **Section 7:** paste your `gcd_loop` and `gcd_rec` from week 10, uncomment the tests, and they print 6, 1, 25 for both versions.
-3. **Section 8** prints the environment. Every value stored in it must be tagged, e.g. `(n (num 6))`, `(g (bool #t))`, `(s (str abc))`, and none may be a plain value like `(n 6)`.
+| Function | What it does |
+|---|---|
+| `(generate-id)` | Increases `heap_counter` and returns the new id, e.g. `|#1|`. |
+| `(create-item value)` | Gets a new id, adds `(id value)` to the front of the heap, and **returns the id**. |
+| `(read-item id)` | Returns the value stored under the id. |
+| `(update-item id value)` | Replaces the value stored under the id. |
+| `(delete-item id)` | Replaces the value with `|#empty|`. |
 
-Finding **where** to update is part of the homework. Start from the first test that fails, find out why, fix it, and move on to the next one.
+`read-item`, `update-item` and `delete-item` must report an error, using `error`, when the id cannot be used:
+- an id that was never created: `Heap error: #99 does not exist`
+- an id that was deleted: `Heap error: #2 has been deleted`
 
-A few decisions are already made for you by the expected outputs:
-- `fire` prints the plain value: `1`, `ccc`, `True`, `False`.
-- `==` compares values of the same type; `===` compares the type and the value.
-- A function without `return` prints `void`.
-- A condition in `ask`, `while`, `do-while` or `for` must be a `bool`. `False` must really be false.
+Reuse the functions you already have in `util.rkt` where they fit.
+
+## Tests
+
+The bottom of `main.rkt` has sections 9–13. Each line has its expected output in a comment. `racket main.rkt` must print exactly that output, and sections 1–8 must still work.
+
+Until all five functions are defined, `main.rkt` stops with `unbound identifier`. That is expected.
 
 ## Fix report
 
-Write a separate document, as a Word file or PDF, that explains your fixes. For each fix, describe:
+Write a separate document, as a Word file or PDF, that explains your work. For each of the five functions, describe:
 
-1. **What** you fixed: the file and the function or expression, and the test that failed because of it.
-2. **How** you fixed it: what you changed. A short code snippet is welcome.
-3. **Why** the fix was needed: what went wrong with the tagged values before your fix, and why your change solves it.
+1. **What** it does, and which tests check it.
+2. **How** you implemented it. A short code snippet is welcome.
+3. **Why** you implemented it that way. For example, why a deleted item is kept as `#empty` instead of being removed, or why an id is never reused.
 
 The report must end with an **AI disclosure** section (required). Either state that you did not use any AI tools, or list:
 - which AI tools you used (for example ChatGPT, Claude or Copilot),
@@ -47,15 +58,19 @@ The report must end with an **AI disclosure** section (required). Either state t
 - how you checked that their answers were correct.
 
 ## Submission
-1. Push your work to your GitHub repository and submit the link to your `week11d2` folder.
-2. Submit screenshots of `racket main.rkt` (or DrRacket) showing the output of sections 1–8, including the printed environment.
-3. Submit your fix report as a Word file or PDF.
+
+1. Push your work to your GitHub repository and submit the link to your `week12d1` folder.
+2. Submit a screenshot of `racket main.rkt` (or DrRacket) showing the output of sections 9–13.
+3. Submit your report as a Word file or PDF.
 
 ## Grading
 
 | Part | Points |
 |---|---|
-| Sections 1–6 print the expected output | 65 |
-| Section 7: both GCD versions still work | 10 |
-| Fix report: what, how and why for each fix, with the AI disclosure | 25 |
+| Section 9: `create-item` and `generate-id` | 15 |
+| Section 10: `read-item` | 15 |
+| Section 11: `update-item` | 15 |
+| Section 12: `delete-item` | 15 |
+| Section 13: errors | 15 |
+| Report: what, how and why for each function, with the AI disclosure | 25 |
 | **Total** | **100** |

@@ -1,5 +1,6 @@
 #lang racket
 (require "util.rkt")
+(require "heap.rkt")
 
 ;a return happened when the nearest #return slot is no longer #none
 ;outside of any function there is no slot, resolve_env gives void, so it never stops
@@ -26,9 +27,19 @@
             ;if it is a variable, we will resoleve the value, and return the resolved value
             ;programmer should be responsible for what he wrote, rather than hand it to the error handler
             ;since the parser already validate the statement of the language, interpreter can omit this stage, but it is still risky if you do not use the parser before interpreter
-            ((equal? 'var-exp (car parsed-exp)) (resolve_env environment (cadr parsed-exp)))
-            ;('num-exp ())
+            ;void means "not found" in resolve, every real value is tagged
+            ((equal? 'var-exp (car parsed-exp))
+                (let ((value (resolve_env environment (cadr parsed-exp))))
+                    (if (void? value)
+                        (error (format "ERROR: undefined variable ~a" (cadr parsed-exp)))
+                        value
+                    )
+                )
+            )
+            ;the parser already tagged the literal: (num-exp (num 1)) -> (num 1)
             ((equal? 'num-exp (car parsed-exp)) (car (cdr parsed-exp)))
+            ;(string-exp (str "abc")) -> (str "abc")
+            ((equal? 'string-exp (car parsed-exp)) (car (cdr parsed-exp)))
             ;'(assign-exp ((var-exp a) (num-exp 2)))
             ((equal? 'assign-exp (car parsed-exp))
                 (wolf_env environment (cadr (car (cadr parsed-exp))) (process (cadr (cadr parsed-exp)))))
@@ -42,15 +53,15 @@
             ((eq? 'boolean-exp (car parsed-exp))
                 (cond
                     ;boolean True void void
+                    ;(list 'bool #t) builds the value, ('bool #t) would call 'bool as a function
                     ((void? (caddr parsed-exp)) (if (eq? 'True (cadr parsed-exp)) (list 'bool #t) (list 'bool #f)))
                     ;boolean ! (var-exp a) void
-                    ;process (var-exp a) -> ('bool #t)
-                    ((void? (cadddr parsed-exp)) (list 'bool (not (cadr (process (caddr parsed-exp))))))
+                    ;process (var-exp a) -> (bool #t)
+                    ((void? (cadddr parsed-exp)) (list 'bool (not (check_type 'bool (process (caddr parsed-exp))))))
                     ;boolean > (num-exp 1) (var-exp a)
                     (else (calculate_boolean (cadr parsed-exp) (process (caddr parsed-exp)) (process (cadddr parsed-exp))))
                 )
             )
-            ((equal? 'string-exp (car parsed-exp)) (list 'str (car (cdr parsed-exp))))
             ((eq? 'func-exp (car parsed-exp))
                 (let
                     (
@@ -69,13 +80,14 @@
                         ;read the slot before the scope is popped
                         (define ret (resolve_env environment '|#return|))
                         (pop_scope_from_environment)
-                        ;no return happened, the default return value is void
+                        ;no return happened, the default return value is a tagged void
                         (if (eq? ret '|#none|) (list 'void (void)) ret)
                     )
                 )
             )
             (
                 (eq? 'ask-exp (car parsed-exp))
+                    ;un-wrap the condition: (bool #f) is a list, which scheme counts as true
                     (if (check_type 'bool (process (cadr parsed-exp)))
                         (process (caddr parsed-exp))
                         (process (cadddr parsed-exp))
@@ -180,8 +192,9 @@
             ;store the value into the nearest #return slot, which belongs to the current function
             ((eq? (car parsed-exp) 'return-exp)
                 (wolf_env environment '|#return| (process (cadr parsed-exp))))
+            ;output is where the value leaves our language, so un-wrap it here
             ((eq? (car parsed-exp) 'fire-exp)
-                (displayln (to_string (process (cadr parsed-exp)))))
+                (displayln (value_to_string (process (cadr parsed-exp)))))
             ;'new-func-exp
             ;(map parse (caddr exp))
             ;(list
@@ -189,11 +202,13 @@
               ;(map parse (cadddr exp))
             ;)
           ;)
-          ((eq? (car parsed-exp) 'new-func-exp) parsed-exp)
+          ;a function is a value too: (func (new-func-exp params body))
+          ((eq? (car parsed-exp) 'new-func-exp) (list 'func parsed-exp))
             ((eq? (car parsed-exp) 'call-exp)
                 (let*
                     (
-                        (func (resolve_env environment (cadr (cadr parsed-exp))))
+                        ;check_type un-wraps (func ...) back to (new-func-exp params body)
+                        (func (check_type 'func (process (cadr parsed-exp))))
                         (function (list 'func-exp 
                             (create_pair_list '() (cadr func) (caddr parsed-exp))
                             (caddr func)

@@ -7,11 +7,12 @@
   (lambda
       (exp)
     (cond
-      ((or (equal? exp 'True) (equal? exp 'False))
+      ;True and False are keywords, they must be checked before the variable
+      ((or (eq? exp 'True) (eq? exp 'False))
         (list 'boolean-exp exp (void) (void)))
       ((symbol? exp) (list 'var-exp exp))
       ((number? exp) (list 'num-exp (list 'num exp)))
-      ((string? exp) (list 'string-exp exp))
+      ((string? exp) (list 'string-exp (list 'str exp)))
       ((null? exp) (displayln "ERROR: empty statement"))
       ((equal? (car exp) 'main)
         (cons 'list-exp (map parse (cdr exp)))
@@ -33,13 +34,11 @@
           (parse (car exp))
           (parse (caddr exp))
         ))  ;math-exp has no error message here
-      ;boolean expression: True/False; A OP B; !A
+      ;boolean expression: True/False (parsed at the top); A OP B; !A
       ;we unify everything into the same interface, OP, A, B
       ;when it is only true or false, OP will be TRUE OR FALSE
       ;when it is three elements, OP will be the operator, A and B will be the value
       ;when it is two elements, OP will be NOT, A will be the value, and B will be empty
-      ((or (equal? exp "True") (equal? exp "False"))
-        (list 'boolean-exp exp (void) (void)))
       ((and (eq? (length exp) 3) (is_valid_boolean_op (cadr exp)))
        (list 'boolean-exp (cadr exp) (parse (car exp)) (parse (caddr exp))))
       ((and (eq? (length exp) 2) (eq? '! (car exp)))
@@ -140,6 +139,16 @@
           (map parse (caddr exp))
         )
       )
+      ((equal? 'cls (car exp))
+        (list
+          'assign-exp
+          (cadr exp)
+          (append (list 
+          'new-class-exp 
+          (caddr exp)) 
+          (map (lambda (item) 
+              (parse item))
+            (cadddr exp)))))
       (else (displayln "PARSER ERROR: the statement has not been supported yet."))
     )
   )
